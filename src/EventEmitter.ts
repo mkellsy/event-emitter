@@ -52,7 +52,7 @@ export class EventEmitter<MAP extends EventListener> {
      * @returns Returns a reference to the `EventEmitter`, so that calls can be
      *          chained.
      */
-    on<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend: boolean): this {
+    on<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
         this.callbacks[event] = this.callbacks[event] || [];
 
         if (this.callbacks[event].length >= this.maxListeners) {
@@ -86,7 +86,7 @@ export class EventEmitter<MAP extends EventListener> {
      * @returns Returns a reference to the `EventEmitter`, so that calls can be
      *          chained.
      */
-    once<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend: boolean): this {
+    once<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
         this.callbacks[event] = this.callbacks[event] || [];
 
         if (this.callbacks[event].length >= this.maxListeners) {
