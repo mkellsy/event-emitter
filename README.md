@@ -3,7 +3,7 @@ Strictly typed event emitter.
 
 ## API
 ```js
-import EventEmitter from "./";
+import EventEmitter from "@mkellsy/event-emitter";
 
 interface Payload {
     Headers: Headers;
