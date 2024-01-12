@@ -1,4 +1,5 @@
-import { EventListener } from "./EventListener";
+import { EventHandler } from "../Interfaces/EventHandler";
+import { EventListener } from "../Interfaces/EventListener";
 
 /**
  * Strictly typed event emitter.
@@ -8,7 +9,7 @@ import { EventListener } from "./EventListener";
  * ```
 */
 export class EventEmitter<MAP extends EventListener> {
-    private callbacks: Record<keyof MAP, Function[]>;
+    private handlers: Record<keyof MAP, EventHandler[]>;
     private maxListeners: number;
 
     /**
@@ -28,7 +29,7 @@ export class EventEmitter<MAP extends EventListener> {
      *                     Default is 10.
      */
     constructor(maxListeners?: number) {
-        this.callbacks = {} as Record<keyof MAP, Function[]>;
+        this.handlers = {} as Record<keyof MAP, EventHandler[]>;
         this.maxListeners = maxListeners || 10;
     }
 
@@ -52,18 +53,12 @@ export class EventEmitter<MAP extends EventListener> {
      * @returns Returns a reference to the `EventEmitter`, so that calls can be
      *          chained.
      */
-    on<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
-        this.callbacks[event] = this.callbacks[event] || [];
-
-        if (this.callbacks[event].length >= this.maxListeners) {
+    public on<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
+        if (this.handlers[event].length >= this.maxListeners) {
             throw new Error(`exceeded maximum (${this.maxListeners}) number of listeners`);
         }
 
-        if (prepend) {
-            this.callbacks[event].unshift(listener);
-        } else {
-            this.callbacks[event].push(listener);
-        }
+        this.pushListeners(event, listener, true, prepend || false);
 
         return this;
     }
@@ -86,29 +81,18 @@ export class EventEmitter<MAP extends EventListener> {
      * @returns Returns a reference to the `EventEmitter`, so that calls can be
      *          chained.
      */
-    once<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
-        this.callbacks[event] = this.callbacks[event] || [];
-
-        if (this.callbacks[event].length >= this.maxListeners) {
+    public once<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
+        if (this.handlers[event].length >= this.maxListeners) {
             throw new Error(`exceeded maximum (${this.maxListeners}) number of listeners`);
         }
 
-        const wrapper = (...args: any[]) => {
-            listener(...args);
-            this.off(event, wrapper as MAP[EVENT]);
-        }
-
-        if (prepend) {
-            this.callbacks[event].unshift(wrapper as MAP[EVENT]);
-        } else {
-            this.callbacks[event].push(wrapper as MAP[EVENT]);
-        }
+        this.pushListeners(event, listener, false, prepend || false);
 
         return this;
     }
 
     /**
-     * Removes all listeners or the specified `listener` from the listener
+     * Removes all listeners or the specified `event` and `listener` from the listener
      * array for the event named `event`.
      *
      * It is bad practice to remove listeners added elsewhere in the code,
@@ -124,29 +108,23 @@ export class EventEmitter<MAP extends EventListener> {
      * eventEmitter.off("Response", printResponse);
      * ```
      *
-     * @param event The name of the event being listened for.
+     * @param event (optional) The name of the event being listened for.
      * @param listener (optional) The callback function. Default will remove
      *                 all listeners for the event.
      * @returns Returns a reference to the `EventEmitter`, so that calls can be
      *          chained.
      */
-    off<EVENT extends keyof MAP>(event: EVENT, listener?: MAP[EVENT]): this {
-        const listeners = this.callbacks[event];
-
-        if (!listeners) {
-            return this;
-        }
-
-        if (listener != null) {
-            for(let i = listeners.length; i > 0; i--) {
-                if (listeners[i] === listener) {
-                    listeners.splice(i,1);
-
-                    return this;
-                }
+    public off<EVENT extends keyof MAP>(event?: EVENT, listener?: MAP[EVENT]): this {
+        const events = this.events().filter((item) => {
+            if (event == null) {
+                return true;
             }
-        } else {
-            delete this.callbacks[event];
+
+            return item === event;
+        }) as EVENT[];
+
+        for (let i = 0; i < events.length; i++) {
+            this.removeListeners(events[i], listener);
         }
 
         return this;
@@ -168,15 +146,17 @@ export class EventEmitter<MAP extends EventListener> {
      * @param args Payload as defined in the event map.
      * @returns Returns `true` if the event had listeners, `false` otherwise.
      */
-    emit<EVENT extends keyof MAP>(event: EVENT, ...args: Parameters<MAP[EVENT]>): boolean {
-        const listeners = this.callbacks[event];
-
-        if (!listeners || listeners.length === 0) {
+    public emit<EVENT extends keyof MAP>(event: EVENT, ...args: Parameters<MAP[EVENT]>): boolean {
+        if (!this.handlers[event] || this.handlers[event].length === 0) {
             return false;
         }
 
-        for (let i = 0; i < listeners.length; i++) {
-            listeners[i](...args);
+        for (let i = 0; i < this.handlers[event].length; i++) {
+            this.handlers[event][i].listener(...args);
+
+            if (!this.handlers[event][i].persistent) {
+                this.spliceListeners(event, i);
+            }
         }
 
         return true;
@@ -188,8 +168,8 @@ export class EventEmitter<MAP extends EventListener> {
      * @param event The name of the event being listened for.
      * @returns Returns a copy of the array of listeners.
      */
-    listeners<EVENT extends keyof MAP>(event: EVENT): MAP[EVENT][] {
-        return [...(this.callbacks[event] || [])] as MAP[EVENT][];
+    public listeners<EVENT extends keyof MAP>(event: EVENT): MAP[EVENT][] {
+        return [...(this.handlers[event] || [])].map((handler) => handler.listener) as MAP[EVENT][];
     }
 
     /**
@@ -198,7 +178,51 @@ export class EventEmitter<MAP extends EventListener> {
      *
      * @returns Returns an array of events names.
      */
-    events(): (keyof MAP | string | symbol)[] {
-        return Object.keys(this.callbacks);
+    public events(): (keyof MAP | string | symbol)[] {
+        return Object.keys(this.handlers);
+    }
+
+    private removeListeners<EVENT extends keyof MAP>(event: EVENT, listener?: MAP[EVENT]): void {
+        if (!this.handlers[event]) {
+            return;
+        }
+
+        if (listener == null) {
+            delete this.handlers[event];
+
+            return;
+        }
+
+        for(let i = this.handlers[event].length; i > 0; i--) {
+            if (this.handlers[event][i].listener === listener) {
+                this.spliceListeners(event, i);
+
+                return;
+            }
+        }
+    }
+
+    private pushListeners<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], persistent: boolean, prepend: boolean): void {
+        const handler: EventHandler = { listener, persistent };
+
+        this.handlers[event] = this.handlers[event] || [];
+
+        if (prepend) {
+            this.handlers[event].unshift(handler);
+        } else {
+            this.handlers[event].push(handler);
+        }
+    }
+
+    private spliceListeners<EVENT extends keyof MAP>(event: EVENT, index: number): void {
+        if (this.handlers[event] == null || this.handlers[event][index] == null) {
+            return;
+        }
+
+        this.handlers[event].splice(index, 1);
+
+        if (this.handlers[event].length === 0) {
+            delete this.handlers[event];
+        }
     }
 }
