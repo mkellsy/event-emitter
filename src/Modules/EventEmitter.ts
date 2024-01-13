@@ -54,7 +54,7 @@ export class EventEmitter<MAP extends EventListener> {
      *          chained.
      */
     public on<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
-        if (this.handlers[event].length >= this.maxListeners) {
+        if (this.handlers[event] != null && this.handlers[event].length >= this.maxListeners) {
             throw new Error(`exceeded maximum (${this.maxListeners}) number of listeners`);
         }
 
@@ -82,7 +82,7 @@ export class EventEmitter<MAP extends EventListener> {
      *          chained.
      */
     public once<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
-        if (this.handlers[event].length >= this.maxListeners) {
+        if (this.handlers[event] != null && this.handlers[event].length >= this.maxListeners) {
             throw new Error(`exceeded maximum (${this.maxListeners}) number of listeners`);
         }
 
@@ -147,7 +147,7 @@ export class EventEmitter<MAP extends EventListener> {
      * @returns Returns `true` if the event had listeners, `false` otherwise.
      */
     public emit<EVENT extends keyof MAP>(event: EVENT, ...args: Parameters<MAP[EVENT]>): boolean {
-        if (!this.handlers[event] || this.handlers[event].length === 0) {
+        if (this.handlers[event] == null || this.handlers[event].length === 0) {
             return false;
         }
 
@@ -183,7 +183,7 @@ export class EventEmitter<MAP extends EventListener> {
     }
 
     private removeListeners<EVENT extends keyof MAP>(event: EVENT, listener?: MAP[EVENT]): void {
-        if (!this.handlers[event]) {
+        if (this.handlers[event] == null) {
             return;
         }
 
