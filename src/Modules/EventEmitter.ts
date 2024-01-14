@@ -14,14 +14,14 @@ export class EventEmitter<MAP extends EventListener> {
 
     /**
      * Creates a new strictly typed event emitter.
-     * 
+     *
      * ```js
      * type Events = {
      *     Error: (error: Error) => void;
      *     Message: (body: string) => void;
      *     Response: (payload: Payload) => void;
      * }
-     * 
+     *
      * const eventEmitter = new EventEmitter<Events>();
      * ```
      *
@@ -39,7 +39,7 @@ export class EventEmitter<MAP extends EventListener> {
      * already been added. Multiple calls passing the same combination of
      * `event`and `listener` will result in the `listener` being added, and
      * called, multiple times.
-     * 
+     *
      * ```js
      * eventEmitter.on("Response", (payload) => {
      *     console.log(payload.Body);
@@ -151,12 +151,18 @@ export class EventEmitter<MAP extends EventListener> {
             return false;
         }
 
+        const splice: number[] = [];
+
         for (let i = 0; i < this.handlers[event].length; i++) {
             this.handlers[event][i].listener(...args);
 
             if (!this.handlers[event][i].persistent) {
-                this.spliceListeners(event, i);
+                splice.push(i);
             }
+        }
+
+        for (let i = 0; i < splice.length; i++) {
+            this.spliceListeners(event, splice[i]);
         }
 
         return true;
