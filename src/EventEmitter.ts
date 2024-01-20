@@ -5,21 +5,21 @@ import { EventListener } from "./EventListener";
 const log = Logger.get("EventEmitter");
 
 /**
-     * Creates a new strictly typed event emitter.
-     *
-     * ```js
-     * type Events = {
-     *     Error: (error: Error) => void;
-     *     Message: (body: string) => void;
-     *     Response: (payload: Payload) => void;
-     * }
-     *
-     * const eventEmitter = new EventEmitter<Events>();
-     * ```
-     *
-     * @param maxListeners (optional) Override the default max listener count.
-     *                     Default is 10.
-     */
+ * Creates a new strictly typed event emitter.
+ *
+ * ```js
+ * type Events = {
+ *     Error: (error: Error) => void;
+ *     Message: (body: string) => void;
+ *     Response: (payload: Payload) => void;
+ * }
+ *
+ * const eventEmitter = new EventEmitter<Events>();
+ * ```
+ *
+ * @param maxListeners (optional) Override the default max listener count.
+ *                     Default is 10.
+ */
 export class EventEmitter<MAP extends { [key: string]: (...args: any[]) => void }> {
     private handlers: Record<keyof MAP, EventListener<MAP>[]>;
     private maxListeners: number;
