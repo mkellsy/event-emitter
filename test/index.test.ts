@@ -6,9 +6,6 @@ import Default, { EventEmitter } from "../src";
 chai.use(sinonChai);
 
 describe("index", () => {
-    let indexType: any;
-    let configurationStub: any;
-
     it("should define a default export", () => {
         expect(Default).to.not.be.null;
         expect(Default).to.equal(EventEmitter);
