@@ -1,5 +1,5 @@
-import { EventEmitter } from "./Modules/EventEmitter";
-import { EventListener } from "./Interfaces/EventListener";
+import { EventEmitter } from "./EventEmitter";
+import { EventListener } from "./EventListener";
 
 export { EventEmitter, EventListener };
 

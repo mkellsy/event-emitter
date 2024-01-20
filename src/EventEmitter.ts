@@ -1,15 +1,27 @@
-import { EventHandler } from "../Interfaces/EventHandler";
-import { EventListener } from "../Interfaces/EventListener";
+import * as Logger from "js-logger";
+
+import { EventListener } from "./EventListener";
+
+const log = Logger.get("EventEmitter");
 
 /**
- * Strictly typed event emitter.
- *
- * ```js
- * import { EventEmitter } from "@mkellsy/event-emitter";
- * ```
-*/
-export class EventEmitter<MAP extends EventListener> {
-    private handlers: Record<keyof MAP, EventHandler[]>;
+     * Creates a new strictly typed event emitter.
+     *
+     * ```js
+     * type Events = {
+     *     Error: (error: Error) => void;
+     *     Message: (body: string) => void;
+     *     Response: (payload: Payload) => void;
+     * }
+     *
+     * const eventEmitter = new EventEmitter<Events>();
+     * ```
+     *
+     * @param maxListeners (optional) Override the default max listener count.
+     *                     Default is 10.
+     */
+export class EventEmitter<MAP extends { [key: string]: (...args: any[]) => void }> {
+    private handlers: Record<keyof MAP, EventListener<MAP>[]>;
     private maxListeners: number;
 
     /**
@@ -29,7 +41,7 @@ export class EventEmitter<MAP extends EventListener> {
      *                     Default is 10.
      */
     constructor(maxListeners?: number) {
-        this.handlers = {} as Record<keyof MAP, EventHandler[]>;
+        this.handlers = {} as Record<keyof MAP, EventListener<MAP>[]>;
         this.maxListeners = maxListeners || 10;
     }
 
@@ -54,11 +66,17 @@ export class EventEmitter<MAP extends EventListener> {
      *          chained.
      */
     public on<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
-        if (this.handlers[event] != null && this.handlers[event].length >= this.maxListeners) {
-            throw new Error(`exceeded maximum (${this.maxListeners}) number of listeners`);
+        this.handlers[event] = this.handlers[event] || [];
+
+        if (this.handlers[event].length >= this.maxListeners) {
+            log.warn(`exceeded maximum (${this.maxListeners}) number of listeners`);
         }
 
-        this.pushListeners(event, listener, true, prepend || false);
+        if (prepend) {
+            this.handlers[event].unshift({ listener, persistent: true });
+        } else {
+            this.handlers[event].push({ listener, persistent: true });
+        }
 
         return this;
     }
@@ -82,11 +100,13 @@ export class EventEmitter<MAP extends EventListener> {
      *          chained.
      */
     public once<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
-        if (this.handlers[event] != null && this.handlers[event].length >= this.maxListeners) {
-            throw new Error(`exceeded maximum (${this.maxListeners}) number of listeners`);
-        }
+        this.handlers[event] = this.handlers[event] || [];
 
-        this.pushListeners(event, listener, false, prepend || false);
+        if (prepend) {
+            this.handlers[event].unshift({ listener, persistent: false });
+        } else {
+            this.handlers[event].push({ listener, persistent: false });
+        }
 
         return this;
     }
@@ -124,7 +144,23 @@ export class EventEmitter<MAP extends EventListener> {
         }) as EVENT[];
 
         for (let i = 0; i < events.length; i++) {
-            this.removeListeners(events[i], listener);
+            if (listener == null || this.handlers[events[i]].length === 0) {
+                delete this.handlers[events[i]];
+
+                continue;
+            }
+
+            const index = this.handlers[events[i]].findIndex((handler) => handler.listener === listener);
+
+            if (index >= 0) {
+                this.handlers[events[i]].splice(index, 1);
+
+                if (this.handlers[events[i]].length === 0) {
+                    delete this.handlers[events[i]];
+                }
+
+                return this;
+            }
         }
 
         return this;
@@ -151,18 +187,18 @@ export class EventEmitter<MAP extends EventListener> {
             return false;
         }
 
-        const splice: number[] = [];
-
         for (let i = 0; i < this.handlers[event].length; i++) {
-            this.handlers[event][i].listener(...args);
-
-            if (!this.handlers[event][i].persistent) {
-                splice.push(i);
+            try {
+                this.handlers[event][i].listener(...args);
+            } catch (error) {
+                log.error(`Unhandled event listener for "${String(event)}"`, error);
             }
         }
 
-        for (let i = 0; i < splice.length; i++) {
-            this.spliceListeners(event, splice[i]);
+        this.handlers[event] = this.handlers[event].filter((handler) => handler.persistent);
+
+        if (this.handlers[event].length === 0) {
+            delete this.handlers[event];
         }
 
         return true;
@@ -186,49 +222,5 @@ export class EventEmitter<MAP extends EventListener> {
      */
     public events(): (keyof MAP | string | symbol)[] {
         return Object.keys(this.handlers);
-    }
-
-    private removeListeners<EVENT extends keyof MAP>(event: EVENT, listener?: MAP[EVENT]): void {
-        if (this.handlers[event] == null) {
-            return;
-        }
-
-        if (listener == null) {
-            delete this.handlers[event];
-
-            return;
-        }
-
-        for(let i = this.handlers[event].length; i > 0; i--) {
-            if (this.handlers[event][i].listener === listener) {
-                this.spliceListeners(event, i);
-
-                return;
-            }
-        }
-    }
-
-    private pushListeners<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], persistent: boolean, prepend: boolean): void {
-        const handler: EventHandler = { listener, persistent };
-
-        this.handlers[event] = this.handlers[event] || [];
-
-        if (prepend) {
-            this.handlers[event].unshift(handler);
-        } else {
-            this.handlers[event].push(handler);
-        }
-    }
-
-    private spliceListeners<EVENT extends keyof MAP>(event: EVENT, index: number): void {
-        if (this.handlers[event] == null || this.handlers[event][index] == null) {
-            return;
-        }
-
-        this.handlers[event].splice(index, 1);
-
-        if (this.handlers[event].length === 0) {
-            delete this.handlers[event];
-        }
     }
 }
