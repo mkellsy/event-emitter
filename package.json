@@ -15,7 +15,7 @@
         "/lib"
     ],
     "scripts": {
-        "build": "tsc --project tsconfig.json",
+        "build": "rm -fR ./lib && tsc --project tsconfig.json",
         "test": "nyc mocha test/*.test.ts test/**/*.test.ts",
         "prepublishOnly": "npm run build && npm run test"
     },
