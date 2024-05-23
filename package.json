@@ -15,9 +15,9 @@
         "/lib"
     ],
     "scripts": {
-        "build": "./build",
+        "build": "npm run test && node ./build",
         "test": "nyc mocha test/*.test.ts test/**/*.test.ts",
-        "prepublishOnly": "npm run build && npm run test"
+        "prepublishOnly": "npm run build"
     },
     "dependencies": {
         "js-logger": "^1.6.1"
