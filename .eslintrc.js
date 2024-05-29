@@ -12,4 +12,12 @@ module.exports = {
         "jsdoc/no-undefined-types": 0,
         "jsdoc/require-description": 1,
     },
+    overrides: [
+        {
+            files: ["*.test.ts"],
+            rules: {
+                "@typescript-eslint/no-explicit-any": 0,
+            },
+        },
+    ],
 };
