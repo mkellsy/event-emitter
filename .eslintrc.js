@@ -18,6 +18,7 @@ module.exports = {
             rules: {
                 "@typescript-eslint/no-explicit-any": 0,
                 "@typescript-eslint/no-var-requires": 0,
+                "@typescript-eslint/ban-types": 0,
             },
         },
     ],
