@@ -20,7 +20,7 @@ const log = Logger.get("EventEmitter");
  * @param maxListeners (optional) Override the default max listener count.
  *                     Default is 10.
  */
-export class EventEmitter<MAP extends { [key: string]: (...args: any[]) => void }> {
+export class EventEmitter<MAP extends { [key: string]: (...args: unknown[]) => void }> {
     private handlers: Record<keyof MAP, EventListener<MAP>[]>;
     private maxListeners: number;
 
@@ -66,7 +66,9 @@ export class EventEmitter<MAP extends { [key: string]: (...args: any[]) => void 
      *          chained.
      */
     public on<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
-        this.handlers[event] = this.handlers[event] || [];
+        if (this.handlers[event] == null) {
+            this.handlers[event] = [];
+        }
 
         if (this.handlers[event].length >= this.maxListeners) {
             log.warn(`exceeded maximum (${this.maxListeners}) number of listeners`);
@@ -100,7 +102,9 @@ export class EventEmitter<MAP extends { [key: string]: (...args: any[]) => void 
      *          chained.
      */
     public once<EVENT extends keyof MAP>(event: EVENT, listener: MAP[EVENT], prepend?: boolean): this {
-        this.handlers[event] = this.handlers[event] || [];
+        if (this.handlers[event] == null) {
+            this.handlers[event] = [];
+        }
 
         if (prepend) {
             this.handlers[event].unshift({ listener, persistent: false });
@@ -191,7 +195,7 @@ export class EventEmitter<MAP extends { [key: string]: (...args: any[]) => void 
             try {
                 this.handlers[event][i].listener(...args);
             } catch (error) {
-                log.error(`Unhandled event listener for "${String(event)}"`, error);
+                log.error(error);
             }
         }
 

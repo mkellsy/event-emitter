@@ -7,9 +7,9 @@ import { EventEmitter } from "../src/EventEmitter";
 chai.use(sinonChai);
 
 type EventMap = {
-    "EVENT": (payload: any) => void;
-    "OTHER_EVENT": (payload: any) => void;
-}
+    EVENT: (payload: any) => void;
+    OTHER_EVENT: (payload: any) => void;
+};
 
 describe("EventEmitter", function () {
     const payload: any = {};
@@ -29,7 +29,7 @@ describe("EventEmitter", function () {
         it("should synchronously emit", () => {
             eventEmitter.on("EVENT", listeners[0]);
             eventEmitter.on("EVENT", listeners[1]);
-            eventEmitter.on("OTHER_EVENT", listeners[2])
+            eventEmitter.on("OTHER_EVENT", listeners[2]);
             eventEmitter.emit("EVENT", payload);
 
             expect(listeners[0]).to.be.calledOnce;
@@ -39,7 +39,7 @@ describe("EventEmitter", function () {
         it("should not call callbacks for other events", () => {
             eventEmitter.on("EVENT", listeners[0]);
             eventEmitter.on("EVENT", listeners[1]);
-            eventEmitter.on("OTHER_EVENT", listeners[2])
+            eventEmitter.on("OTHER_EVENT", listeners[2]);
             eventEmitter.emit("EVENT", payload);
 
             expect(listeners[2]).to.not.be.called;
@@ -48,7 +48,7 @@ describe("EventEmitter", function () {
         it("should emit for all listeners of the event even if one throws", () => {
             eventEmitter.on("EVENT", listeners[0]);
             eventEmitter.on("EVENT", listeners[1]);
-            eventEmitter.on("OTHER_EVENT", listeners[2])
+            eventEmitter.on("OTHER_EVENT", listeners[2]);
 
             listeners[0].throws();
 
