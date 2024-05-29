@@ -14,6 +14,12 @@ module.exports = {
     },
     overrides: [
         {
+            files: ["./src/EventEmitter.ts"],
+            rules: {
+                "@typescript-eslint/no-explicit-any": 0,
+            },
+        },
+        {
             files: ["*.test.ts"],
             rules: {
                 "@typescript-eslint/no-explicit-any": 0,
