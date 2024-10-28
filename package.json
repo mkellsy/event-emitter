@@ -7,7 +7,7 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/mkellsy/event-emitter"
+        "url": "git+https://github.com/mkellsy/event-emitter.git"
     },
     "homepage": "https://github.com/mkellsy/event-emitter",
     "main": "lib/index.js",
