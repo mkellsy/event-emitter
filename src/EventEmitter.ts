@@ -19,6 +19,7 @@ const log = Logger.get("EventEmitter");
  *
  * @param maxListeners (optional) Override the default max listener count.
  *                     Default is 10.
+ * @public
  */
 export class EventEmitter<MAP extends { [key: string]: (...args: any[]) => void }> {
     private handlers: Record<keyof MAP, EventListener<MAP>[]>;
