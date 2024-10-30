@@ -4,6 +4,8 @@ Strictly typed event emitter.
 
 ## API
 
+[**API Documentation**](docs/README.md)
+
 ```js
 import EventEmitter from "@mkellsy/event-emitter";
 
