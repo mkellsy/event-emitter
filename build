@@ -44,7 +44,7 @@ jobs.push(
         log.info(`generate types ${colors.cyan(path.resolve(__dirname, "lib"))}`);
 
         proc.exec(
-            `${path.resolve(__dirname, "node_modules/.bin/tsc")} --emitDeclarationOnly --outDir ${path.resolve(__dirname, "lib")} --project ${path.resolve(__dirname, "tsconfig.json")}`,
+            `${path.resolve(__dirname, "node_modules/.bin/tsc")} --emitDeclarationOnly --outDir ${path.resolve(__dirname, "temp")} --project ${path.resolve(__dirname, "tsconfig.json")}`,
             (error) => {
                 if (error) {
                     reject(error);
